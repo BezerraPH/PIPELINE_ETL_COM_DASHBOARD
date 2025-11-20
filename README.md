@@ -1,5 +1,3 @@
----
-
 # 🚀 PIPELINE_ETL_COM_DASHBOARD  
 
 ## 🎮 Análise de Valor e Personalização de Assinaturas Xbox Game Pass  
@@ -96,15 +94,15 @@ O Dashboard fornece uma visão **360º da base de assinantes**, com recursos com
 ## 🌐 Projeto Publicado  
 
 Este projeto está disponível online através do **GitHub Pages**:  
-👉 [https://bezerraph.github.io/PIPELINE_ETL_COM_DASHBOARD/](https://bezerraph.github.io/PIPELINE_ETL_COM_DASHBOARD/)   
+👉 [https://bezerraph.github.io/PIPELINE_ETL_COM_DASHBOARD/](https://bezerraph.github.io/PIPELINE_ETL_COM_DASHBOARD/)  
 
-<img width="1906" height="882" alt="image" src="https://github.com/user-attachments/assets/54796e6f-812b-4a5e-be30-849cd1285b9b" /> 
+![Dashboard Screenshot](https://github.com/user-attachments/assets/54796e6f-812b-4a5e-be30-849cd1285b9b)  
 
 ---
 
 ## 📬 Contato  
 
 Conecte-se comigo e confira meu trabalho:  
-- 🔗 [LinkedIn](https://www.linkedin.com/in/pedro-oliveira-a16a99273/)    
+- 🔗 [LinkedIn](https://www.linkedin.com/in/pedro-oliveira-a16a99273/)   
 
 ---
