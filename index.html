@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard ETL - Vendas Xbox Game Pass</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    
+    <style>
+        :root {
+            --xbox-green: #107c10;
+            --xbox-dark: #1f2937; /* cinza escuro */
+            --bg-light: #f3f4f6; /* cinza muito claro */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-light);
+            min-height: 100vh;
+        }
+        .header {
+            background-color: var(--xbox-dark);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        .chart-card {
+            min-height: 400px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .chart-card > div {
+            flex-grow: 1;
+        }
+        .chart-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+        .chart-title {
+            color: var(--xbox-dark);
+            border-bottom: 2px solid var(--xbox-green);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        /* Estilo para a Tabela de Dados Brutos */
+        #data-table-container {
+            max-height: 500px;
+            overflow-y: auto;
+            margin-top: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        #data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        #data-table th, #data-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        #data-table th {
+            background-color: var(--xbox-dark);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        /* Estilo para a Tabela de Mensagens */
+        #message-list {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        #message-list th, #message-list td {
+            padding: 8px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        #message-list th {
+            background-color: #e5e7eb;
+            font-weight: 700;
+        }
+        .send-status {
+            font-weight: 600;
+        }
+        .status-pending { color: #f97316; } /* Laranja */
+        .status-sent { color: #10b981; } /* Verde */
+        
+        /* Estilo para o acordeão de explicações */
+        .accordion-item {
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .accordion-button {
+            width: 100%;
+            text-align: left;
+            padding: 15px;
+            font-weight: 600;
+            background-color: #f9fafb;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .accordion-button:hover {
+            background-color: #f3f4f6;
+        }
+        .accordion-content {
+            padding: 15px;
+            background-color: white;
+            border-top: 1px solid #e5e7eb;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header text-white text-center py-6">
+        <div class="container mx-auto px-4">
+            <h1 class="text-4xl font-bold">🎮 Análise de Assinaturas Xbox Game Pass</h1>
+            <p class="text-lg mt-1 text-gray-300">Insights de Valor Líquido e Distribuição de Clientes (Pipeline ETL Local)</p>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <div id="loading" class="text-center text-gray-600 text-xl font-semibold">
+            Carregando dados...
+        </div>
+        
+        <div id="error-message" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-8" role="alert">
+            <strong class="font-bold">Erro de Carregamento:</strong>
+            <span class="block sm:inline" id="error-details">Não foi possível carregar os dados. Verifique se 'data/xbox_sales_transformed.json' existe e se o servidor local está rodando.</span>
+        </div>
+        
+        <!-- Botões de Ação -->
+        <div class="mb-8 flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+            <button id="toggle-data-button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-150 shadow-md hover:shadow-lg">
+                Inspecionar Dados (Mostrar Tabela)
+            </button>
+            <button id="open-message-manager-button" class="bg-xbox-green text-white font-bold py-2 px-4 rounded-lg transition duration-150 shadow-md hover:shadow-lg" style="background-color: var(--xbox-green);">
+                ✉️ Gerenciar Mensagens Personalizadas
+            </button>
+        </div>
+        
+        <!-- SEÇÃO: Gerenciamento de Mensagens -->
+        <div id="message-management-container" class="hidden bg-white p-6 rounded-xl shadow-lg mb-8">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800 border-b pb-2">Gerenciamento de Mensagens LLM</h2>
+            
+            <p class="mb-4 text-sm text-gray-600">Selecione os clientes abaixo e clique em "Enviar Mensagens" para simular o carregamento das mensagens geradas pelo LLM (Inteligência Artificial).</p>
+            
+            <div class="mb-4 flex items-center space-x-4">
+                <button id="select-all-button" class="bg-gray-400 hover:bg-gray-500 text-white text-sm font-bold py-1 px-3 rounded transition duration-150">
+                    Selecionar Todos
+                </button>
+                <button id="send-messages-button" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition duration-150 shadow-md">
+                    Enviar Mensagens (Simulação)
+                </button>
+                <div id="send-result" class="text-lg font-semibold text-gray-700"></div>
+            </div>
+            
+            <div class="max-h-96 overflow-y-auto border rounded-lg">
+                <table id="message-list" class="w-full">
+                    <thead>
+                        <tr>
+                            <th class="w-10">#</th>
+                            <th>Nome</th>
+                            <th class="min-w-[50%]">Mensagem Personalizada (LLM)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Linhas de mensagem serão inseridas aqui via JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <button id="close-message-manager-button" class="mt-4 bg-gray-500 hover:bg-gray-600 text-white font-bold py-1 px-3 rounded-lg transition duration-150">
+                Fechar Gerenciamento
+            </button>
+        </div>
+        
+        <!-- SEÇÃO: Tabela de Dados Brutos (Início oculta) -->
+        <div id="data-table-container" class="hidden">
+            <table id="data-table"></table>
+        </div>
+
+        <!-- SEÇÃO: Gráficos -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            
+            <div class="bg-white rounded-xl shadow-lg p-6 chart-card">
+                <h5 class="text-xl font-semibold chart-title">Distribuição dos Planos</h5>
+                <div>
+                    <canvas id="planDistributionChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6 chart-card">
+                <h5 class="text-xl font-semibold chart-title">Contagem por Categoria de Valor</h5>
+                <div>
+                    <canvas id="valueCategoryChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6 chart-card">
+                <h5 class="text-xl font-semibold chart-title">Receita Líquida Média por Plano (R$)</h5>
+                <div>
+                    <canvas id="avgNetValueChart"></canvas>
+                </div>
+            </div>
+
+        </div>
+        
+        <!-- Seção de Explicações dos Gráficos -->
+        <div class="mt-12">
+            <div id="explain-button" class="bg-gray-200 p-4 rounded-t-xl cursor-pointer hover:bg-gray-300 transition duration-150 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-gray-800">i Informações: Explicar Gráficos</h2>
+                <svg id="explain-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transform transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+            </div>
+            <div id="explanations-container" class="bg-white rounded-b-xl shadow-lg hidden">
+                <div class="accordion-item">
+                    <h5 class="accordion-button">Distribuição dos Planos</h5>
+                    <div class="accordion-content">
+                        <p>Este gráfico de pizza ou rosca mostra a proporção de clientes que assinam cada tipo de plano (Core, Standard ou Ultimate). É crucial para entender quais planos geram maior volume de usuários e orientar estratégias de promoção ou descontinuação de planos.</p>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h5 class="accordion-button">Contagem por Categoria de Valor</h5>
+                    <div class="accordion-content">
+                        <p>O gráfico de barras mostra a distribuição de clientes categorizados como "High Value" (Valor Líquido > R$ 40,00) ou "Standard Value" (Valor Líquido <= R$ 40,00). Essa visualização ajuda a identificar a saúde da base de clientes em termos de rentabilidade.</p>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h5 class="accordion-button">Receita Líquida Média por Plano (R$)</h5>
+                    <div class="accordion-content">
+                        <p>Este gráfico de barras horizontais exibe o Valor Líquido Médio (Receita Total - Valor do Cupom) gerado por cada tipo de plano. Ele indica o plano mais rentável, auxiliando na priorização de esforços de retenção e upsell.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        const CSV_FILE = 'data/xbox_sales_transformed.json'; // ALTERADO: Lendo JSON
+        // O separador não é mais necessário, mas o mantemos para consistência em outras funções.
+        const CSV_SEPARATOR = ';'; 
+        
+        const THEME_COLORS = {
+            PRIMARY: '#107c10', // Verde Xbox
+            SECONDARY: '#0078d4', // Azul Microsoft
+            TERTIER: '#ff7043', // Laranja Acento
+            GRAY: '#adb5bd'      // Cinza Neutro
+        };
+        
+        let planChart, valueChart, avgNetChart; 
+        let rawData = []; 
+
+        // Função para carregar e processar o JSON
+        async function loadData() {
+            console.log("LOG: Iniciando o carregamento de dados...");
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('error-message').classList.add('hidden');
+            
+            try {
+                const response = await fetch(CSV_FILE);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status} - Verifique a URL e CORS.`);
+                }
+                
+                // NOVO: Lê a resposta como JSON
+                const jsonData = await response.json(); 
+                
+                if (!Array.isArray(jsonData) || jsonData.length === 0) {
+                    throw new Error("O arquivo JSON está vazio ou não está no formato de lista de objetos esperado.");
+                }
+                
+                rawData = jsonData;
+                
+                // Determina os cabeçalhos a partir do primeiro objeto (necessário para a tabela)
+                const headers = Object.keys(rawData[0]);
+
+                console.log(`LOG: Dados JSON processados com sucesso. ${rawData.length} registros válidos.`);
+                
+                processData(rawData);
+                populateTable(rawData, headers); 
+                populateMessageManager(rawData); 
+
+            } catch (error) {
+                console.error("ERRO FATAL no loadData:", error);
+                document.getElementById('error-details').textContent = `Falha na leitura ou processamento do JSON. Detalhes: ${error.message}.`;
+                document.getElementById('error-message').classList.remove('hidden');
+            } finally {
+                document.getElementById('loading').classList.add('hidden');
+            }
+        }
+
+        // --- Funções de UI Interativa (Mantidas) ---
+        
+        // Lógica para mostrar/ocultar a tabela
+        document.getElementById('toggle-data-button').addEventListener('click', function() {
+            const container = document.getElementById('data-table-container');
+            const button = this;
+            const isHidden = container.classList.contains('hidden');
+            
+            if (isHidden) {
+                container.classList.remove('hidden');
+                button.textContent = "Inspecionar Dados (Ocultar Tabela)";
+            } else {
+                container.classList.add('hidden');
+                button.textContent = "Inspecionar Dados (Mostrar Tabela)";
+            }
+        });
+        
+        // Lógica para mostrar o gerenciador de mensagens
+        document.getElementById('open-message-manager-button').addEventListener('click', function() {
+            document.getElementById('message-management-container').classList.remove('hidden');
+            document.getElementById('data-table-container').classList.add('hidden');
+            document.getElementById('toggle-data-button').textContent = "Inspecionar Dados (Mostrar Tabela)";
+        });
+
+        // Lógica para fechar o gerenciador de mensagens
+        document.getElementById('close-message-manager-button').addEventListener('click', function() {
+            document.getElementById('message-management-container').classList.add('hidden');
+        });
+        
+        // Lógica para expandir/ocultar a seção de explicações
+        document.getElementById('explain-button').addEventListener('click', function() {
+            const container = document.getElementById('explanations-container');
+            const icon = document.getElementById('explain-icon');
+            
+            container.classList.toggle('hidden');
+            icon.classList.toggle('rotate-180');
+        });
+
+        // Lógica de Selecionar Todos no Gerenciador de Mensagens
+        document.getElementById('select-all-button').addEventListener('click', function() {
+            const checkboxes = document.querySelectorAll('#message-list tbody input[type="checkbox"]');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            
+            checkboxes.forEach(cb => {
+                cb.checked = !allChecked;
+            });
+        });
+
+        // Lógica de Simulação de Envio de Mensagens
+        document.getElementById('send-messages-button').addEventListener('click', function() {
+            const checkboxes = document.querySelectorAll('#message-list tbody input[type="checkbox"]:checked');
+            const resultElement = document.getElementById('send-result');
+            
+            if (checkboxes.length === 0) {
+                resultElement.innerHTML = `<span class="text-red-500">Selecione pelo menos um cliente para enviar!</span>`;
+                return;
+            }
+            
+            // Simulação de PUT/LOAD na API (demora artificial para UX)
+            this.disabled = true;
+            resultElement.innerHTML = `<span class="status-pending">Enviando ${checkboxes.length} mensagens...</span>`;
+            
+            setTimeout(() => {
+                checkboxes.forEach(cb => {
+                    const row = cb.closest('tr');
+                    const statusCell = row.querySelector('.send-status');
+                    
+                    if (statusCell) {
+                        statusCell.textContent = 'Enviada!';
+                        statusCell.classList.remove('status-pending');
+                        statusCell.classList.add('status-sent');
+                        // Desabilita o checkbox após o "envio"
+                        cb.disabled = true; 
+                    }
+                });
+                
+                resultElement.innerHTML = `<span class="status-sent">✅ ${checkboxes.length} mensagens enviadas com sucesso!</span>`;
+                this.disabled = false;
+            }, 1500); // 1.5 segundos de simulação
+        });
+
+
+        // Função para popular a tabela de inspeção de Dados Brutos
+        function populateTable(data, headers) {
+            const table = document.getElementById('data-table');
+            // Limpa o conteúdo anterior
+            table.innerHTML = '';
+            
+            const thead = table.createTHead();
+            const tbody = table.createTBody();
+
+            // Adiciona o cabeçalho
+            let row = thead.insertRow();
+            headers.forEach(header => {
+                let th = document.createElement("th");
+                th.textContent = header;
+                row.appendChild(th);
+            });
+
+            // Adiciona as linhas de dados (limita a 100 linhas para performance, se houver mais)
+            const displayData = data.slice(0, 100); 
+
+            displayData.forEach(item => {
+                let row = tbody.insertRow();
+                headers.forEach(header => {
+                    let cell = row.insertCell();
+                    cell.textContent = item[header];
+                });
+            });
+            
+            if (data.length > 100) {
+                 const footer = table.createTFoot();
+                 let row = footer.insertRow();
+                 let cell = row.insertCell();
+                 cell.colSpan = headers.length;
+                 cell.textContent = `Mostrando as primeiras 100 de ${data.length} linhas.`;
+                 cell.style.textAlign = 'center';
+                 cell.style.fontStyle = 'italic';
+                 cell.style.backgroundColor = '#f3f4f6';
+            }
+        }
+        
+        // NOVO: Função para popular a lista de mensagens personalizadas
+        function populateMessageManager(data) {
+            const tbody = document.querySelector('#message-list tbody');
+            // Limpa o conteúdo anterior
+            tbody.innerHTML = ''; 
+
+            data.forEach((item, index) => {
+                const row = tbody.insertRow();
+                row.className = 'hover:bg-gray-50';
+
+                // Coluna # (Checkbox)
+                let cellCheck = row.insertCell();
+                cellCheck.innerHTML = `<input type="checkbox" data-id="${item['Subscriber ID']}" class="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500">`;
+
+                // Coluna Nome
+                let cellName = row.insertCell();
+                cellName.textContent = item['Name'];
+
+                // Coluna Mensagem
+                let cellMessage = row.insertCell();
+                cellMessage.textContent = item['Personalized Message']; 
+
+                // Coluna Status
+                let cellStatus = row.insertCell();
+                cellStatus.className = 'send-status status-pending text-sm';
+                cellStatus.textContent = 'Pendente';
+            });
+        }
+        
+        // --- Funções de Gráfico (configuração dos datasets completa) ---
+
+        // Destrói o gráfico existente
+        function destroyChart(chartInstance) {
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+        }
+
+        function processData(data) {
+            // Lógica de Agregação e Cálculo de Média 
+            const aggregatedData = data.reduce((acc, item) => {
+                const category = item['Value Category'];
+                const plan = item['Plan'];
+                // Converte Net Value para float (necessário para JSON lido como string)
+                const netValue = parseFloat(item['Net Value']) || 0; 
+                
+                acc.categoryCounts[category] = (acc.categoryCounts[category] || 0) + 1;
+                
+                if (!acc.planStats[plan]) { acc.planStats[plan] = { count: 0, sum: 0 }; }
+                acc.planStats[plan].count += 1;
+                acc.planStats[plan].sum += netValue;
+                return acc;
+            }, { categoryCounts: {}, planStats: {} });
+
+            const avgNetValueByPlan = {};
+            for (const [plan, stats] of Object.entries(aggregatedData.planStats)) {
+                avgNetValueByPlan[plan] = (stats.sum / stats.count).toFixed(2);
+            }
+            
+            renderPlanDistributionChart(aggregatedData.planStats);
+            renderValueCategoryChart(aggregatedData.categoryCounts);
+            renderAvgNetValueChart(avgNetValueByPlan);
+        }
+
+        // GRÁFICO 1: Distribuição dos Planos (Pizza)
+        function renderPlanDistributionChart(planStats) {
+            destroyChart(planChart);
+            const counts = Object.values(planStats).map(s => s.count);
+            const labels = Object.keys(planStats);
+            const ctx = document.getElementById('planDistributionChart').getContext('2d');
+            
+            planChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Distribuição dos Planos',
+                        data: counts,
+                        backgroundColor: [
+                            THEME_COLORS.PRIMARY, 
+                            THEME_COLORS.SECONDARY, 
+                            THEME_COLORS.TERTIER 
+                        ],
+                        borderColor: 'white',
+                        borderWidth: 2,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { font: { family: 'Inter' } } }
+                    }
+                }
+            });
+        }
+
+        // GRÁFICO 2: Clientes por Categoria de Valor (Barra Vertical)
+        function renderValueCategoryChart(counts) {
+            destroyChart(valueChart);
+            const ctx = document.getElementById('valueCategoryChart').getContext('2d');
+            
+            valueChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(counts),
+                    datasets: [{
+                        label: 'Número de Clientes',
+                        data: Object.values(counts),
+                        backgroundColor: [
+                            THEME_COLORS.PRIMARY, 
+                            THEME_COLORS.GRAY 
+                        ],
+                        borderRadius: 5,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+        
+        // GRÁFICO 3: Receita Líquida Média por Plano (Barra Horizontal)
+        function renderAvgNetValueChart(avgValues) {
+            destroyChart(avgNetChart);
+            const ctx = document.getElementById('avgNetValueChart').getContext('2d');
+
+            avgNetChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(avgValues),
+                    datasets: [{
+                        label: 'Média R$',
+                        data: Object.values(avgValues),
+                        backgroundColor: THEME_COLORS.SECONDARY,
+                        borderRadius: 5,
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Valor Médio (R$)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.x !== null) {
+                                        // Formata como moeda brasileira
+                                        label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.x);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Inicia o carregamento dos dados
+        window.onload = loadData;
+    </script>
+
+</body>
+</html>
