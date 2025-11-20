@@ -1,13 +1,110 @@
-# PIPELINE_ETL_COM_DASHBOARD
+---
 
-🎮 ETL e Dashboard Interativo de Assinaturas Xbox Game PassEste projeto é uma evolução do Desafio de Projeto da Santander Dev Week 2023 (DIO), reimaginando o pipeline ETL (Extract, Transform, Load) para um novo domínio: a análise e personalização de marketing de assinaturas do Xbox Game Pass.O foco é demonstrar proficiência na manipulação, limpeza e enriquecimento de dados utilizando Python (Pandas/NumPy) e visualização interativa em um Dashboard Web (HTML/JavaScript/Chart.js).🚀 Funcionalidades do ProjetoPipeline ETL Robusto (Python): Processamento de dados semi-estruturados (CSV) com limpeza de dados monetários, cálculos de valor e categorização de clientes.Simulação de IA Generativa: Geração de mensagens de marketing curtas e personalizadas para cada assinante, simulando o uso de um Large Language Model (LLM) como o ChatGPT.Dashboard Interativo (HTML): Apresentação dos resultados do ETL em um dashboard moderno e responsivo, utilizando gráficos do Chart.js.Inspeção de Dados: Recurso interativo para visualizar os dados brutos transformados (JSON), facilitando a auditoria e validação do ETL.⚙️ Tecnologias UtilizadasCategoriaTecnologiaUso no ProjetoLinguagem PrincipalPythonOrquestração do ETL, limpeza e transformação de dados.Data SciencePandas, NumPyManipulação de DataFrames, limpeza de strings e cálculos vetorizados.Formato de DadosJSONFormato de saída do ETL para consumo direto e eficiente pelo Dashboard Web.FrontendHTML5, JavaScriptConstrução do Dashboard Web e lógica de carregamento/processamento de dados.VisualizaçãoChart.jsGeração dos gráficos de Distribuição de Planos, Categoria de Valor e Receita Média.EstilizaçãoTailwind CSSFramework de utilidades para design responsivo e moderno do Dashboard.📐 Metodologia ETLO projeto segue a metodologia de pipeline de dados:1. Extract (Extração)Fonte: Arquivo base.csv (simulação de dados de vendas regionais).Ação: O script Python lê o CSV, lidando com problemas regionais de codificação (utf-16 ou latin1) e separadores (;).2. Transform (Transformação)Limpeza: Converte colunas monetárias (R$ 15,00, R$ -) para o tipo float (número), permitindo cálculos. Remove acentuação dos nomes para evitar erros de codificação (João -> Joao).Cálculo: Cria a métrica Valor Líquido (Net Value) subtraindo Coupon Value de Total Value.Enriquecimento (IA/LLM): Adiciona a coluna Personalized Message, simulando a chamada a um LLM (como o GPT) para criar mensagens de marketing personalizadas para cada cliente.Categorização: Cria a coluna Value Category (High Value ou Standard) baseada em regras de negócio (Net Value > R$ 40,00).3. Load (Carregamento)Destino: O DataFrame transformado é salvo como um arquivo xbox_sales_transformed.json no formato de lista de registros.Ação Web: O index.html carrega este JSON via JavaScript para popular o Dashboard.💻 Como Rodar o ProjetoPara visualizar o Dashboard e executar o pipeline ETL, siga estas etapas:Pré-requisitosCertifique-se de ter instalado:Python 3.xBibliotecas Python (Instale via pip):pip install pandas numpy unidecode
-Estrutura do DiretórioO projeto espera a seguinte estrutura:/seu-projeto/
-├── data/
-│   ├── base.csv          # Arquivo de entrada (Dados brutos)
-│   └── xbox_sales_transformed.json # Saída do pipeline ETL
-├── xbox_etl_pipeline.py  # Script Python com o pipeline ETL
-└── index.html            # Dashboard Web Interativo
-1. Executar o Pipeline ETLExecute o script Python para processar os dados e gerar o arquivo JSON:python xbox_etl_pipeline.py
-Saída esperada: O arquivo data/xbox_sales_transformed.json será criado/atualizado.2. Visualizar o DashboardPara visualizar o dashboard interativo, é necessário rodar um servidor web local simples (devido às restrições de segurança do navegador que impedem a leitura direta de arquivos locais):Abra seu terminal no diretório raiz do projeto (/seu-projeto/).Inicie o servidor Python:python -m http.server 8000
-Abra seu navegador e acesse a URL:http://localhost:8000/index.html
-📸 Dashboard InterativoO dashboard exibe três visualizações principais:GráficoDescriçãoDistribuição dos PlanosMostra a proporção de clientes por tipo de assinatura (Core, Standard, Ultimate).Contagem por Categoria de ValorExibe a segmentação de clientes entre High Value (alto valor) e Standard (padrão).Receita Líquida Média por PlanoIndica o valor médio de receita que cada tipo de plano gera após descontar cupons, essencial para análise de rentabilidade.(Adicione aqui uma captura de tela do seu Dashboard final, se possível.)ContatoConecte-se comigo:LinkedIn: [Seu link do LinkedIn]GitHub: [Seu perfil do GitHub]
+# 🚀 PIPELINE_ETL_COM_DASHBOARD  
+
+## 🎮 Análise de Valor e Personalização de Assinaturas Xbox Game Pass  
+
+Este projeto demonstra a construção completa de um **pipeline ETL (Extract, Transform, Load)** aplicado à análise de dados de vendas de assinaturas do **Xbox Game Pass**.  
+
+O objetivo é ir além da simples manipulação de dados, integrando a **simulação de Inteligência Artificial Generativa (LLM)** para enriquecer os dados e fornecer **insights de negócio** através de um **Dashboard Web interativo**.  
+
+Este projeto é uma evolução prática do **Desafio de Projeto da Santander Dev Week 2023 (DIO)**, aplicando a mesma metodologia em um novo domínio: **Gaming/Subscriptions**.  
+
+---
+
+## ✨ Destaques do Projeto  
+
+- **Automação ETL em Python** → Processamento robusto de dados semi-estruturados (CSV), com foco em limpeza de dados monetários e padronização.  
+- **Simulação de LLM para Marketing** → Geração de mensagens curtas e personalizadas, simulando a criação por modelos de linguagem (ex.: GPT/Gemini).  
+- **Engenharia de Dados Aplicada** → Criação de métricas de negócio como **Net Value** e **Value Category (High Value / Standard)**.  
+- **Dashboard Interativo e Responsivo** → Visualização dos resultados em HTML + Tailwind CSS, com gráficos dinâmicos via Chart.js.  
+
+---
+
+## ⚙️ Tecnologias Utilizadas  
+
+| Categoria            | Tecnologia             | Uso no Projeto                                                                 |
+|----------------------|------------------------|-------------------------------------------------------------------------------|
+| **Linguagem Principal** | Python                 | Orquestração do pipeline, limpeza de dados e geração do JSON final             |
+| **Data Science**     | Pandas, NumPy, Unidecode | Manipulação de DataFrames, cálculos de métricas e normalização de strings      |
+| **Formato de Saída** | JSON                   | Estrutura eficiente para consumo direto pelo Dashboard Web                     |
+| **Frontend**         | HTML5, JavaScript      | Estrutura do Dashboard e lógica de carregamento assíncrono                     |
+| **Visualização**     | Chart.js               | Renderização dos gráficos de análise de vendas e rentabilidade                 |
+| **Estilização**      | Tailwind CSS           | Framework utilitário para design moderno e responsivo                          |
+
+---
+
+## 📐 Metodologia do Pipeline ETL  
+
+O projeto está dividido em três etapas sequenciais, gerenciadas pelo script **`xbox_etl_pipeline.py`**:  
+
+### 1. Extract (Extração)  
+- Fonte: `base.csv` (simulação de dados de assinaturas).  
+- Processamento: leitura do arquivo, ajuste de codificação e limpeza inicial do cabeçalho para garantir nomes de colunas padronizados.  
+
+### 2. Transform (Transformação)  
+Principais operações:  
+- **Limpeza Monetária** → Conversão de strings com símbolos (`R$ 15,00`, `-`) para `float`.  
+- **Cálculo de Net Value** → Receita líquida = Valor Total - Cupom.  
+- **Categorização** → Definição da `Value Category` (High Value ou Standard).  
+- **Enriquecimento (LLM Simulado)** → Geração da coluna `Personalized Message` com mensagens de marketing personalizadas.  
+
+### 3. Load (Carregamento)  
+- Exportação para `data/xbox_sales_transformed.json` no formato **lista de objetos (orient='records')**.  
+- Consumo Web: `index.html` carrega o JSON, permitindo visualização rápida e sem erros de separador CSV.  
+
+---
+
+## 💻 Como Rodar o Projeto  
+
+### Pré-requisitos  
+- Python 3.x  
+- Bibliotecas necessárias:  
+  ```bash
+  pip install pandas numpy unidecode
+  ```
+
+### Passos  
+1. **Executar o ETL**  
+   ```bash
+   python xbox_etl_pipeline.py
+   ```  
+
+2. **Visualizar o Dashboard**  
+   Inicie um servidor web local:  
+   ```bash
+   python -m http.server 8000
+   ```  
+   Abra o navegador em: [http://localhost:8000/index.html](http://localhost:8000/index.html)  
+
+---
+
+## 📸 Dashboard Interativo  
+
+O Dashboard fornece uma visão **360º da base de assinantes**, com recursos como:  
+- Inspeção de dados brutos (tabela oculta).  
+- Gerenciamento de mensagens (simulação de envio).  
+
+| Gráfico                        | Insight de Negócio                                                                 |
+|--------------------------------|------------------------------------------------------------------------------------|
+| **Distribuição dos Planos**    | Popularidade dos planos e potencial de upsell                                       |
+| **Contagem por Categoria**     | Segmentação em High Value vs. Standard → campanhas de retenção e investimento       |
+| **Receita Líquida Média**      | Identificação do plano mais rentável (após descontos/cupons)                        |
+
+---
+
+## 🌐 Projeto Publicado  
+
+Este projeto está disponível online através do **GitHub Pages**:  
+👉 [https://bezerraph.github.io/PIPELINE_ETL_COM_DASHBOARD/](https://bezerraph.github.io/PIPELINE_ETL_COM_DASHBOARD/)   
+
+<img width="1906" height="882" alt="image" src="https://github.com/user-attachments/assets/54796e6f-812b-4a5e-be30-849cd1285b9b" /> 
+
+---
+
+## 📬 Contato  
+
+Conecte-se comigo e confira meu trabalho:  
+- 🔗 [LinkedIn](https://www.linkedin.com/in/pedro-oliveira-a16a99273/)    
+
+---
